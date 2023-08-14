@@ -11,31 +11,39 @@ const registerUser = asyncHandler(async(req, res)=>{
         res.status(400)
         throw new Error('Please add all fields')
     }
-    //check if user exists
-    const userExist = await User.findOne({email})
-    if(userExist){
-        res.status(400)
-        throw new Error('This user already exists')
-    }
-    //hash password
-    const salt = await bcrypt.genSalt(10)
-    const hashedP = await bcrypt.hash(password, salt)
-
-    //create user
-    const user = await User.create({
-        name,
-        email,
-        password:hashedP,
-    })
-    if(user){
-        res.status(201).json({
-            _id:user.id,
-            name:user.name,
-            email:user.email,
-            token:generateToken(user._id)
-        })
-    } else{
-        res.status(400).json("ahaa")
+    else{
+        //check if user exists
+        const userExist = await User.findOne({email})
+        if(userExist){
+            res.status(400)
+            throw new Error('This user already exists')
+        }
+        //hash password
+        const salt = await bcrypt.genSalt(10)
+        const hashedP = await bcrypt.hash(password, salt)
+        // console.log(hashedP)
+        //create user
+        try{
+            const save = await new User({
+                name,
+                email,
+                password:hashedP,
+            }).save();
+            save?res.status(200).json({token:generateToken(save.id)}):res.status(400).json("user creation failed")
+        } catch(err){
+            res.status(400).json({message:err.message})
+        }
+        // if(user){
+        //     res.status(201)
+            // res.status(201).json({
+            //     // name:user.name,
+            //     // email:user.email,
+            //     token:generateToken(user.id)
+            // })
+        // } else{
+        //     res.status(400).json("ahaa")
+        // }
+        
     }
 })
 
@@ -79,7 +87,7 @@ const getMe =  asyncHandler(async(req, res)=>{
 })
 
 
-let generateToken = (id)=>{
+const generateToken = (id)=>{
     return jwt.sign({id}, process.env.JWT_SECRET,{expiresIn:'30d'})
 }
 
